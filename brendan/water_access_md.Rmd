@@ -1,0 +1,284 @@
+---
+title: "water access for refugees and americans"
+author: "Brendan Sullivan"
+date: "October 18, 2019"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+
+borehole_access <- read_csv("data/BoreholeData_LastAccess_Sep2019.csv")
+us_usage <- read_csv("data/domesticwaterusage_bycounty_us.csv")
+camp_usage <- read_csv("data/Water_Usage_In_Camps_Most_Recent_Data.csv")
+
+```
+
+## Data exploration
+
+#### Borehole access
+
+1663 observations, high NA population. Variables with around 50% or less NA's could yield good info. 
+
+Numerical variables of interest:
+
+  - Elevation in meters above sea level
+  - Depth in m
+  - Static water level in meters below ground level
+  - Casing diameter in inch
+  - Driller's yield in m3/hr
+  - Daily pumping time in h
+
+Look at categorical variables like:
+
+  - Country
+  - Drilling date
+  - Status
+
+```{r explore_borehole_access}
+
+summary(borehole_access)
+glimpse(borehole_access)
+
+# restrict dataset to numerical vars of interest and rename
+borehole_access_restricted <- borehole_access %>%
+  select("Country", 
+         "Status",
+         "Elevation in meters above sea level", 
+         "Depth in m", 
+         "Static water level in meters below ground level", 
+         "Casing diameter in inch", 
+         "Driller's yield in m3/hr", 
+         "Daily pumping time in h") %>%
+  rename(country = "Country", 
+         status = "Status", 
+         elevation_m = "Elevation in meters above sea level", 
+         depth_m = "Depth in m", 
+         static_water_level_m = "Static water level in meters below ground level", 
+         casing_diameter_inch = "Casing diameter in inch", 
+         drill_yield_m3h = "Driller's yield in m3/hr", 
+         daily_pumping_h = "Daily pumping time in h")
+
+# explore dataset
+### by country
+glimpse(borehole_access_restricted)
+(plot_country_pumping <- borehole_access_restricted %>%
+  ggplot(aes(country, daily_pumping_h)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1)))
+(plot_country_elev <- borehole_access_restricted %>%
+  ggplot(aes(country, elevation_m)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1)))
+(plot_country_depth <- borehole_access_restricted %>%
+  ggplot(aes(country, depth_m)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1)))
+(plot_country_staticlevel <- borehole_access_restricted %>%
+  ggplot(aes(country, static_water_level_m)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1)))
+(plot_country_casingdiam <- borehole_access_restricted %>%
+  ggplot(aes(country, casing_diameter_inch)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1)))
+(plot_country_depth <- borehole_access_restricted %>%
+  ggplot(aes(country, depth_m)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1)))
+
+### explore relationships between borehole variables - depth through daily pumping
+(plot_depth_drillyield <- borehole_access_restricted %>%
+  ggplot(aes(depth_m, drill_yield_m3h)) +
+  geom_point())
+(plot_depth_staticwater <- borehole_access_restricted %>%
+  ggplot(aes(depth_m, static_water_level_m)) +
+  geom_point())
+(plot_depth_casing <- borehole_access_restricted %>%
+  ggplot(aes(depth_m, casing_diameter_inch)) +
+  geom_point())
+(plot_depth_pumping <- borehole_access_restricted %>%
+  ggplot(aes(depth_m, daily_pumping_h)) +
+  geom_point())
+(plot_depth_casing <- borehole_access_restricted %>%
+  ggplot(aes(depth_m, casing_diameter_inch)) +
+  geom_point())
+(plot_drill_pump <- borehole_access_restricted %>%
+  ggplot(aes(drill_yield_m3h, daily_pumping_h)) +
+  geom_point())
+(plot_static_drill <- borehole_access_restricted %>%
+  ggplot(aes(static_water_level_m, drill_yield_m3h)) +
+  geom_point())
+
+```
+
+
+### Camp usage
+
+796 observations. Same criteria as above - look at variables with approx < 50% NA's. 
+
+Variables of interest:
+
+  - COUNTRY NAME
+  - EMERGENCY / POST-EMERGENCY
+  - AVERAGE # LITERS OF POTABLE WATER AVAILABLE PER PERSON PER DAY
+  - NUMBER OF PERSONS PER USABLE WATER TAP
+  -  % OF WATER QUALITY TESTS AT CHLORINATED COLLECTION LOCATIONS WITH FRC IN THE RANGE 0.2-2MG/L AND TURBIDITY <5NTU5
+  - NUMBER OF PERSONS PER TOILET/LATRINE
+  - NUMBER OF PERSONS PER BATH SHELTER/SHOWER
+  - NUMBER OF PERSONS PER HYGIENE PROMOTER
+  - REFUGEE POPULATION
+
+```{r explore_camp_usage}
+
+summary(camp_usage)
+glimpse(camp_usage)
+
+# restrict to vars of interest and rename
+camp_usage_restricted <- camp_usage %>%
+  select("COUNTRY NAME", 
+         "EMERGENCY / POST-EMERGENCY", 
+         "AVERAGE # LITERS OF POTABLE WATER AVAILABLE PER PERSON PER DAY", 
+         "NUMBER OF PERSONS PER USABLE WATER TAP", 
+         "% OF WATER QUALITY TESTS AT CHLORINATED COLLECTION LOCATIONS WITH FRC IN THE RANGE 0.2-2MG/L AND TURBIDITY <5NTU5", 
+         "NUMBER OF PERSONS PER TOILET/LATRINE", 
+         "NUMBER OF PERSONS PER BATH SHELTER/SHOWER", 
+         "NUMBER OF PERSONS PER HYGIENE PROMOTER", 
+         "REFUGEE POPULATION") %>%
+  rename(country = "COUNTRY NAME", 
+         emergency_status = "EMERGENCY / POST-EMERGENCY", 
+         water_per_person_l = "AVERAGE # LITERS OF POTABLE WATER AVAILABLE PER PERSON PER DAY", 
+         persons_per_tap = "NUMBER OF PERSONS PER USABLE WATER TAP", 
+         quality_tests = "% OF WATER QUALITY TESTS AT CHLORINATED COLLECTION LOCATIONS WITH FRC IN THE RANGE 0.2-2MG/L AND TURBIDITY <5NTU5",
+         persons_per_toilet = "NUMBER OF PERSONS PER TOILET/LATRINE", 
+         persons_per_shower = "NUMBER OF PERSONS PER BATH SHELTER/SHOWER", 
+         persons_per_hygienepromoter = "NUMBER OF PERSONS PER HYGIENE PROMOTER", 
+         refugee_population = "REFUGEE POPULATION")
+
+# water quality tests vs other vars
+(plot_tests_toilet <- camp_usage_restricted %>%
+  ggplot(aes(quality_tests, persons_per_toilet)) +
+  geom_point())
+(plot_tests_water <- camp_usage_restricted %>%
+  ggplot(aes(quality_tests, water_per_person_l)) +
+  geom_point())
+(plot_tests_tap <- camp_usage_restricted %>%
+  ggplot(aes(quality_tests, persons_per_tap)) +
+  geom_point())
+(plot_tests_shower <- camp_usage_restricted %>%
+  ggplot(aes(quality_tests, persons_per_shower)) +
+  geom_point())
+(plot_tests_hygiene <- camp_usage_restricted %>%
+  ggplot(aes(quality_tests, persons_per_hygienepromoter)) +
+  geom_point())
+(plot_tests_pop <- camp_usage_restricted %>%
+  ggplot(aes(quality_tests, refugee_population)) +
+  geom_point())
+
+# plotting the distributions of water per person, ppl per tap etc by country would be illustrative when compared with US
+# measure water resource crowdedness by country - persons per xyz with additional measure for water per person
+(plot_country_tap <- camp_usage_restricted %>%
+  ggplot(aes(reorder(country, log(persons_per_tap)), log(persons_per_tap))) +
+  geom_jitter(position = position_jitter(w = .2), 
+              alpha = .3) +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1)))
+(plot_country_water <- camp_usage_restricted %>%
+  ggplot(aes(country, water_per_person_l)) +
+  geom_jitter(position = position_jitter(w = .2), 
+              alpha = .3) +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1)))
+(plot_country_pop <- camp_usage_restricted %>%
+  ggplot(aes(reorder(country, refugee_population), refugee_population)) +
+  geom_jitter(position = position_jitter(w = .2), 
+              alpha = .3) +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1)))
+(plot_country_toilet <- camp_usage_restricted %>%
+  ggplot(aes(reorder(country, persons_per_toilet), persons_per_toilet)) +
+  geom_jitter(position = position_jitter(w = .2), 
+              alpha = .3) +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1)))
+(plot_country_hygiene <- camp_usage_restricted %>%
+  ggplot(aes(reorder(country, persons_per_hygienepromoter), persons_per_hygienepromoter)) +
+  geom_jitter(position = position_jitter(w = .2), 
+              alpha = .3) +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1)))
+
+
+```
+
+
+### US usage
+
+with the exception of 4 NA's (out of 3223 total observations) in DO-PSPCp, dataset is complete.
+
+rename variables to make them more intuitive
+
+from the data dictionary this is what they mean 
+
+STATE	State postal abbreviation
+STATEFIPS	State FIPS code
+COUNTY	County name
+COUNTYFIPS	County FIPS code
+FIPS	Concatenated State-county FIPS code
+YEAR	Year of data=2015
+TP-TotPop	Total population of county, in thousands
+DO-SSPop	Domestic, self-supplied population, in thousands
+DO-WGWFr	Domestic, self-supplied groundwater withdrawals, fresh, in Mgal/d
+DO-WSWFr	Domestic, self-supplied surface-water withdrawals, fresh, in Mgal/d
+DO-WFrTo	Domestic, total self-supplied withdrawals, fresh, in Mgal/d
+DO-SSPCp	Domestic, self-supplied per capita use, in gallons/day [DO-WFrTo/DO-SSPop*1000]
+DO-PSDel	Domestic, deliveries from Public Supply, in Mgal/d
+DO-PSPCp	Domestic, publicly supplied per capita use, in gallons/day [DO-PSDel/PS-TOPop]
+DO-WDelv	Domestic, total use (withdrawals + deliveries), in Mgal/d
+
+Don't need anything with FIPS
+
+
+
+```{r explore_us_usage}
+
+summary(us_usage)
+glimpse(us_usage)
+
+us_usage_restricted <- us_usage %>%
+  select(-c(STATEFIPS, COUNTYFIPS, FIPS)) %>%
+  rename(state = STATE, 
+         county = COUNTY, 
+         year = YEAR, 
+         countypop = "TP-TotPop", 
+         ss_pop = "DO-SSPop", 
+         ss_ground_withdrawals = "DO-WGWFr",
+         ss_surface_withdrawals = "DO-WSWFr",
+         total_ss_withdrawals = "DO-WFrTo",
+         ss_percap_use = "DO-SSPCp",
+         del_from_publicsupply = "DO-PSDel",
+         pubsupplied_percap_use = "DO-PSPCp",
+         totaluse_with_del = "DO-WDelv")
+
+(plot_state_totalsswithdrawals <- us_usage_restricted %>%
+  ggplot(aes(reorder(state, total_ss_withdrawals), total_ss_withdrawals)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1)))
+
+(plot_state_ssgroundwithdrawals <- us_usage_restricted %>%
+  ggplot(aes(reorder(state, ss_ground_withdrawals), ss_ground_withdrawals)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1)))
+
+(plot_state_sssurfacewithdrawals <- us_usage_restricted %>%
+  ggplot(aes(reorder(state, ss_surface_withdrawals), ss_surface_withdrawals)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1)))
+
+(plot_state_delpubsupp <- us_usage_restricted %>%
+  ggplot(aes(reorder(state, del_from_publicsupply), del_from_publicsupply)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 75, hjust = 1)))
+
+
+```
